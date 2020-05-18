@@ -11,3 +11,5 @@ nohup /usr/lib/gsd-xsettings > /home/rewrite/scripts/log/gsd.log 2>&1 &
 #rclone mount mido:/home/re/SDfiles /home/rewrite/Videos/mido/sdfiles &
 rclone mount mido:/www/wwwroot/192.168.3.10/files /home/rewrite/Videos/mido/files &
 /home/rewrite/scripts/appstart.sh
+wmname LG3D
+
