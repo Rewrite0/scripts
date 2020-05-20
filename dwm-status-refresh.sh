@@ -120,7 +120,8 @@ print_bat(){
 }
 
 print_date(){
-	date '+%Y年%m月%d日 %H:%M'
+	#date '+%Y年%m月%d日 %H:%M'
+	date +'%Y年%b%d日|星期%a|%R'
 }
 
 show_record(){
@@ -156,8 +157,8 @@ get_bytes
 vel_recv=$(get_velocity $received_bytes $old_received_bytes $now)
 vel_trans=$(get_velocity $transmitted_bytes $old_transmitted_bytes $now)
 
-xsetroot -name "  💿 $(print_mem)M ⬇️ $vel_recv ⬆️ $vel_trans $(dwm_alsa) [ $(print_bat) ]$(show_record) $(print_date) "
-
+xsetroot -name "  💿 $(print_mem)M | $(dwm_alsa) | $(get_battery_charging_status)$(  acpi -b | awk '{ print $4, $5 }' | tr -d ',') | $(show_record) $(print_date) "
+#xsetroot -name "音:$(amixer get Master | tail -1 | awk '{ print $4}' | tr -d '[]')|电:$(  acpi -b | awk '{ print $4, $5 }' | tr -d ',')|$(date +'%Y年%b%d日|星期%a|%R')"
 # Update old values to perform new calculations
 old_received_bytes=$received_bytes
 old_transmitted_bytes=$transmitted_bytes

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-feh --bg-scale --recursive --randomize ~/Pictures/wallpaper/
+feh --bg-scale --recursive ~/Pictures/wallpaper/
