@@ -157,8 +157,9 @@ get_bytes
 vel_recv=$(get_velocity $received_bytes $old_received_bytes $now)
 vel_trans=$(get_velocity $transmitted_bytes $old_transmitted_bytes $now)
 
-xsetroot -name "  💿 $(print_mem)M | $(dwm_alsa) | $(get_battery_charging_status)$(  acpi -b | awk '{ print $4, $5 }' | tr -d ',') | $(show_record) $(print_date) "
-#xsetroot -name "音:$(amixer get Master | tail -1 | awk '{ print $4}' | tr -d '[]')|电:$(  acpi -b | awk '{ print $4, $5 }' | tr -d ',')|$(date +'%Y年%b%d日|星期%a|%R')"
+MU=$(amixer get Master | sed -n '$p' | cut -d'[' -f3 | cut -d] -f1)
+
+xsetroot -name "  💿 $(print_mem)M | $(dwm_alsa) | Vol.${MU} | $(get_battery_charging_status)$(  acpi -b | awk '{ print $4, $5 }' | tr -d ',') | $(show_record) $(print_date) "
 # Update old values to perform new calculations
 old_received_bytes=$received_bytes
 old_transmitted_bytes=$transmitted_bytes
