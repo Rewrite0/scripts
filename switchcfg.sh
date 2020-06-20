@@ -1,12 +1,12 @@
 #新配置文件路径
-new_file_cfg_dir=/home/rewrite/prog/subconverter/config.yaml
+new_file_cfg_dir=~/config.yaml
 #配置文件放置路径
-cfg_dir=/home/rewrite/.config/clash
+cfg_dir=~/.config/clash
 #原配置文件路径
-file_cfg_dir=/home/rewrite/.config/clash/config.yaml
+file_cfg_dir=~/.config/clash/config.yaml
 #######################################################################
 echo "正在下载配置"
-/home/rewrite/prog/subconverter/subconverter -g
+wget http://107.172.86.42:25500/sub?target=clashr -O ~/config.yaml
 if [ -e ${new_file_cfg_dir} ];then
 	echo "配置文件存在"
 	rm -rf ${file_cfg_dir}
@@ -15,13 +15,13 @@ if [ -e ${new_file_cfg_dir} ];then
 	if [ $? -ne 0  ];then
 		echo "clashr没有运行"
 		echo "准备启动clashr"
-		/home/rewrite/scripts/clashr.sh
+		~/scripts/clashr.sh
 		echo "clashr配置切换完成!"
 	else
 		echo "clashr正在运行"
 		echo "准备重启clashr"
 		pkill clashr
-		/home/rewrite/scripts/clashr.sh
+		~/scripts/clashr.sh
 		echo "clashr配置切换完成!"
 	fi	
 else
