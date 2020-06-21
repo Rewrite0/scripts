@@ -1,7 +1,14 @@
 #!/bin/bash
-
-sleep 1s
+shopt -s nullglob
+cd ~/Pictures/wallpaper
 while true; do
-	feh --bg-scale --recursive --randomize ~/Pictures/wallpaper/
+	files=()
+	for i in *.jpg *.png; do
+		[[ -f $i ]] && files+=("$i")
+	done
+	range=${#files[@]}
+
+	((range)) && feh --bg-scale "${files[RANDOM % range]}"
+
 	sleep 5m
 done
