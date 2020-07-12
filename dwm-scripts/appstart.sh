@@ -6,5 +6,3 @@ fcitx &
 xdman &
 nm-applet &
 wmname LG3D
-#tim所需
-nohup /usr/lib/gsd-xsettings > ~/scripts/log/gsd.log 2>&1 &
