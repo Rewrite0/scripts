@@ -7,14 +7,14 @@ a=$1
 start(){
 	rm -rf ~/scripts/log/clashr.log
 	nohup ~/prog/clashr/clashr > ~/scripts/log/clashr.log 2>&1 &
-	sleep 3
+	sleep 2
 	cat ~/scripts/log/clashr.log
 }
 
 if [ -z $a ];then
 	start
 elif [ $a == restart ];then
-	pkill clashr
+	killall clashr
 	start
 elif [ $a == status ];then
 	cat ~/scripts/log/clashr.log
