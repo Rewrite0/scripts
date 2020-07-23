@@ -6,7 +6,7 @@
 a=$1
 start(){
 	rm -rf ~/scripts/log/clash.log
-	nohup ~/prog/clash > ~/scripts/log/clash.log 2>&1 &
+	nohup clash > ~/scripts/log/clash.log 2>&1 &
 	sleep 2
 	cat ~/scripts/log/clash.log
 }
