@@ -5,8 +5,6 @@ cfg_dir=~/.config/clash
 #原配置文件路径
 file_cfg_dir=~/.config/clash/config.yaml
 #######################################################################
-unset https_proxy && unset http_proxy
-pkill clash
 ~/prog/subconverter/subconverter -g
 echo "配置下载完成"
 if [ -e ${new_file_cfg_dir} ];then
