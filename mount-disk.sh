@@ -8,7 +8,7 @@ if [ $mode == m ];then
 	sudo fdisk -l | grep /dev
 	read -p "输入磁盘位置(/dev后的位置):" disk
 	read -p "输入挂载位置(1/2/3):" dir
-	sudo mount /dev/$disk /home/$user/disks/$dir
+	sudo mount -o uid=$user,gid=$user /dev/$disk /home/$user/disks/$dir
 	df -h | grep /disk
 elif [ $mode == u ];then
 	if [ "$(df -h | grep /disk)" != "" ];then
