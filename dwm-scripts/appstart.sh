@@ -7,3 +7,5 @@ fcitx5 &
 nm-applet &
 blueman-applet &
 wmname LG3D
+#网易云解锁
+~/prog/UnblockNeteaseMusic/start.sh
