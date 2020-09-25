@@ -1,9 +1,5 @@
 #!/bin/bash
-# Screenshot: http://s.natalian.org/2013-08-17/dwm_status.png
-# Network speed stuff stolen from http://linuxclues.blogspot.sg/2009/11/shell-script-show-network-speed.html
 
-# This function parses /proc/net/dev file searching for a line containing $interface data.
-# Within that line, the first and ninth numbers after ':' are respectively the received and transmited bytes.
 function get_bytes {
 	# Find active network interface
 	interface=$(ip route get 8.8.8.8 2>/dev/null| awk '{print $5}')
@@ -159,7 +155,8 @@ vel_trans=$(get_velocity $transmitted_bytes $old_transmitted_bytes $now)
 
 MU=$(amixer get Master | sed -n '$p' | cut -d'[' -f3 | cut -d] -f1)
 
-xsetroot -name "  💿 $(print_mem)M | $(dwm_alsa) | Vol.${MU} | $(get_battery_charging_status)$(  acpi -b | awk '{ print $4, $5 }' | tr -d ',') | $(show_record) $(print_date) "
+xsetroot -name "  💿 $(print_mem)M | ⬇️ $vel_recv ⬆️ $vel_trans | $(dwm_alsa) | Vol.${MU} | $(get_battery_charging_status)$( acpi -b | awk '{ print $4, $5 }' | tr -d ',') | $(show_record) $(print_date) "
+
 # Update old values to perform new calculations
 old_received_bytes=$received_bytes
 old_transmitted_bytes=$transmitted_bytes

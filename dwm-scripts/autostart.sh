@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#~/scripts/dwm-scripts/show-display.sh
+~/scripts/dwm-scripts/show-display.sh
 ~/scripts/dwm-scripts/dwm-status.sh &
 ~/scripts/dwm-scripts/bg-autochange.sh &
 ~/scripts/dwm-scripts/appstart.sh
