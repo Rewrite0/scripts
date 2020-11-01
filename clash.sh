@@ -5,10 +5,9 @@
 #########################################################################
 a=$1
 start(){
-	rm -rf ~/scripts/log/clash.log
-	nohup clash > ~/scripts/log/clash.log 2>&1 &
+	nohup clash > /tmp/log/clash.log 2>&1 &
 	sleep 2
-	cat ~/scripts/log/clash.log
+	cat /tmp/log/clash.log
 }
 
 if [ -z $a ];then
@@ -17,5 +16,5 @@ elif [ $a == restart ];then
 	killall clash
 	start
 elif [ $a == status ];then
-	cat ~/scripts/log/clash.log
+	cat /tmp/log/clash.log
 fi
