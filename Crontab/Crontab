@@ -1,0 +1,2 @@
+# 每天21点同步文件
+0 21 * * * /home/rewrite/scripts/sync.sh
