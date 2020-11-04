@@ -1,2 +1,4 @@
 # 每天21点30同步文件
-30 21 * * * /bin/bash /home/rewrite/scripts/sync.sh
+30 21 * * * sh /home/rewrite/scripts/sync.sh
+# 每天21点更新clash配置
+0 21 * * * sh /home/rewrite/scripts/switchcfg.sh
