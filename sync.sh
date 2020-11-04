@@ -3,6 +3,7 @@
 # File Name: sync.sh
 # Created Time: 2020年11月01日 星期日 00时38分28秒
 #########################################################################
+source /etc/profile
 print_date(){
 	date +'%Y/%m/%d/%R'
 }

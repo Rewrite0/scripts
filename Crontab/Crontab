@@ -1,2 +1,2 @@
 # 每天21点30同步文件
-30 21 * * * /home/rewrite/scripts/sync.sh
+30 21 * * * /bin/bash /home/rewrite/scripts/sync.sh
