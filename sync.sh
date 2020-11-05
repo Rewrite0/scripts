@@ -14,4 +14,4 @@ rclone copy /home/rewrite/Music/CloudMusic gd:/Music -Pv --cache-chunk-size 128M
 rclone copy /home/rewrite/Videos/live_wallpaper gd:/live_wallpaper -Pv --cache-chunk-size 128M > /tmp/log/sync.log 2>&1
 
 echo `print_date`  备份完成 >> /tmp/log/sync.log
-zenity --info --width=200 --height=150 --text "sync定时任务已执行" --timeout=10
+zenity --info --width=200 --height=150 --text "sync定时任务已执行" --timeout=30

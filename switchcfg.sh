@@ -24,7 +24,7 @@ if [ -e ${new_file_cfg_dir} ];then
 		~/scripts/clash.sh
 		echo "clash配置切换完成!"
 		echo "clash配置切换脚本已执行 -- 成功 -- "`print_date` > /tmp/log/scfg.log
-		zenity --info --width=200 --height=150 --text "clash配置切换定时任务已执行--成功" --timeout=5
+		zenity --info --width=200 --height=150 --text "clash配置切换定时任务已执行--成功" --timeout=30
 	else
 		echo "clash正在运行"
 		echo "准备重启clash"
@@ -32,10 +32,10 @@ if [ -e ${new_file_cfg_dir} ];then
 		~/scripts/clash.sh
 		echo "clash配置切换完成!"
 		echo "clash配置切换脚本已执行 -- 成功 -- "`print_date` > /tmp/log/scfg.log
-		zenity --info --width=200 --height=150 --text "clash配置切换定时任务已执行--成功" --timeout=5
+		zenity --info --width=200 --height=150 --text "clash配置切换定时任务已执行--成功" --timeout=30
 	fi	
 else
 	echo "配置文件不存在,退出脚本"
 	echo "clash配置切换脚本已执行 -- 失败 --- "`print_date` > /tmp/log/scfg.log
-	zenity --info --width=200 --height=150 --text "clash配置切换定时任务已执行--失败" --timeout=5
+	zenity --info --width=200 --height=150 --text "clash配置切换定时任务已执行--失败" --timeout=30
 fi
