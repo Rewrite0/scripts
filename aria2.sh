@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
-#=============================================================
+#
+# Copyright (c) 2017 Toyo
+# Copyright (c) 2018-2020 P3TERX <https://p3terx.com>
+#
+# This is free software, licensed under the MIT License.
+# See /LICENSE for more information.
+#
 # https://github.com/P3TERX/aria2.sh
 # Description: Aria2 One-click installation management script
 # System Required: CentOS/Debian/Ubuntu
-# Version: 2.4.2
-# Author: Toyo
-# Maintainer: P3TERX
-# Blog: https://p3terx.com
-#=============================================================
+# Version: 2.7.2
+#
 
-sh_ver="2.4.2"
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-export PATH
-aria2_conf_path="/root/.aria2"
-download_path="/root/Download"
-aria2_conf="${aria2_conf_path}/aria2.conf"
-aria2_log="${aria2_conf_path}/aria2.log"
+sh_ver="2.7.2"
+#PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+#export PATH
+aria2_conf_dir="/root/.aria2c"
+download_path="/root/downloads"
+aria2_conf="${aria2_conf_dir}/aria2.conf"
+aria2_log="${aria2_conf_dir}/aria2.log"
 aria2c="/usr/local/bin/aria2c"
 Crontab_file="/usr/bin/crontab"
 Green_font_prefix="\033[32m"
@@ -73,42 +76,27 @@ check_pid() {
     PID=$(ps -ef | grep "aria2c" | grep -v grep | grep -v "aria2.sh" | grep -v "init.d" | grep -v "service" | awk '{print $2}')
 }
 check_new_ver() {
-    echo -e "${Info} 请输入 Aria2 版本号，格式如：[ 1.35.0 ]，获取地址：[ https://github.com/P3TERX/aria2-builder/releases ]"
-    read -e -p "默认回车自动获取最新版本号:" aria2_new_ver
+    aria2_new_ver=$(
+        {
+            wget -t2 -T3 -qO- "https://api.github.com/repos/P3TERX/aria2-builder/releases/latest" ||
+                wget -t2 -T3 -qO- "https://gh-api.p3terx.com/repos/P3TERX/aria2-builder/releases/latest"
+        } | grep -o '"tag_name": ".*"' | head -n 1 | cut -d'"' -f4
+    )
     if [[ -z ${aria2_new_ver} ]]; then
-        aria2_new_ver=$(
-            {
-                wget -t2 -T3 -qO- "https://api.github.com/repos/P3TERX/aria2-builder/releases/latest" ||
-                    wget -t2 -T3 -qO- "https://gh-api.p3terx.com/repos/P3TERX/aria2-builder/releases/latest"
-            } | grep -o '"tag_name": ".*"' | head -n 1 | cut -d'"' -f4
-        )
-        if [[ -z ${aria2_new_ver} ]]; then
-            echo -e "${Error} Aria2 最新版本获取失败，请手动获取最新版本号[ https://github.com/P3TERX/aria2-builder/releases ]"
-            read -e -p "请输入版本号 [ 格式如 1.35.0 ] :" aria2_new_ver
-            [[ -z "${aria2_new_ver}" ]] && echo "取消..." && exit 1
-        else
-            echo -e "${Info} 检测到 Aria2 最新版本为 [ ${aria2_new_ver} ]"
-        fi
-    else
-        echo -e "${Info} 即将准备下载 Aria2 版本为 [ ${aria2_new_ver} ]"
+        echo -e "${Error} Aria2 最新版本获取失败，请手动获取最新版本号[ https://github.com/P3TERX/aria2-builder/releases ]"
+        read -e -p "请输入版本号:" aria2_new_ver
+        [[ -z "${aria2_new_ver}" ]] && echo "取消..." && exit 1
     fi
 }
 check_ver_comparison() {
-    aria2_now_ver=$(${aria2c} -v | head -n 1 | awk '{print $3}')
-    [[ -z ${aria2_now_ver} ]] && echo -e "${Error} Aria2 当前版本获取失败 !" && exit 1
-    if [[ "${aria2_now_ver}" != "${aria2_new_ver}" ]]; then
-        echo -e "${Info} 发现 Aria2 已有新版本 [ ${aria2_new_ver} ](当前版本：${aria2_now_ver})"
-        read -e -p "是否更新(会中断当前下载任务，请注意) ? [Y/n] :" yn
-        [[ -z "${yn}" ]] && yn="y"
-        if [[ $yn == [Yy] ]]; then
-            check_pid
-            [[ ! -z $PID ]] && kill -9 ${PID}
-            check_sys
-            Download_aria2 "update"
-            Start_aria2
-        fi
-    else
-        echo -e "${Info} 当前 Aria2 已是最新版本 [ ${aria2_new_ver} ]" && exit 1
+    read -e -p "是否更新(会中断当前下载任务) ? [Y/n] :" yn
+    [[ -z "${yn}" ]] && yn="y"
+    if [[ $yn == [Yy] ]]; then
+        check_pid
+        [[ ! -z $PID ]] && kill -9 ${PID}
+        check_sys
+        Download_aria2 "update"
+        Start_aria2
     fi
 }
 Download_aria2() {
@@ -125,6 +113,10 @@ Download_aria2() {
         echo -e "${Error} 不支持此 CPU 架构。"
         exit 1
     fi
+    while [[ $(which aria2c) ]]; do
+        echo -e "${Info} 删除旧版 Aria2 二进制文件..."
+        rm -vf $(which aria2c)
+    done
     DOWNLOAD_URL="https://github.com/P3TERX/aria2-builder/releases/download/${aria2_new_ver}/aria2-${aria2_new_ver%_*}-static-linux-${ARCH}.tar.gz"
     {
         wget -t2 -T3 -O- "${DOWNLOAD_URL}" ||
@@ -132,49 +124,54 @@ Download_aria2() {
     } | tar -zx
     [[ ! -s "aria2c" ]] && echo -e "${Error} Aria2 下载失败 !" && exit 1
     [[ ${update_dl} = "update" ]] && rm -f "${aria2c}"
-    mv aria2c /usr/local/bin
+    mv -f aria2c "${aria2c}"
     [[ ! -e ${aria2c} ]] && echo -e "${Error} Aria2 主程序安装失败！" && exit 1
     chmod +x ${aria2c}
     echo -e "${Info} Aria2 主程序安装完成！"
 }
 Download_aria2_conf() {
-    mkdir -p "${aria2_conf_path}" && cd "${aria2_conf_path}"
-    wget -N -t2 -T3 "https://p3terx.github.io/aria2.conf/aria2.conf" ||
-        wget -N -t2 -T3 "https://aria2c.now.sh/aria2.conf" ||
-        wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.conf/master/aria2.conf"
-    [[ ! -s "aria2.conf" ]] && echo -e "${Error} Aria2 配置文件下载失败 !" && rm -rf "${aria2_conf_path}" && exit 1
-    wget -N -t2 -T3 "https://p3terx.github.io/aria2.conf/autoupload.sh" ||
-        wget -N -t2 -T3 "https://aria2c.now.sh/autoupload.sh" ||
-        wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.conf/master/autoupload.sh"
-    [[ ! -s "autoupload.sh" ]] && echo -e "${Error} 附加功能脚本[autoupload.sh]下载失败 !" && rm -rf "${aria2_conf_path}" && exit 1
-    wget -N -t2 -T3 "https://p3terx.github.io/aria2.conf/delete.aria2.sh" ||
-        wget -N -t2 -T3 "https://aria2c.now.sh/delete.aria2.sh" ||
-        wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.conf/master/delete.aria2.sh"
-    [[ ! -s "delete.aria2.sh" ]] && echo -e "${Error} 附加功能脚本[delete.aria2.sh]下载失败 !" && rm -rf "${aria2_conf_path}" && exit 1
-    wget -N -t2 -T3 "https://p3terx.github.io/aria2.conf/delete.sh" ||
-        wget -N -t2 -T3 "https://aria2c.now.sh/delete.sh" ||
-        wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.conf/master/delete.sh"
-    [[ ! -s "delete.sh" ]] && echo -e "${Error} 附加功能脚本[delete.sh]下载失败 !" && rm -rf "${aria2_conf_path}" && exit 1
-    wget -N -t2 -T3 "https://p3terx.github.io/aria2.conf/dht.dat" ||
-        wget -N -t2 -T3 "https://aria2c.now.sh/dht.dat" ||
-        wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.conf/master/dht.dat"
-    [[ ! -s "dht.dat" ]] && echo -e "${Error} Aria2 DHT（IPv4）文件下载失败 !" && rm -rf "${aria2_conf_path}" && exit 1
-    wget -N -t2 -T3 "https://p3terx.github.io/aria2.conf/dht6.dat" ||
-        wget -N -t2 -T3 "https://aria2c.now.sh/dht6.dat" ||
-        wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.conf/master/dht6.dat"
-    [[ ! -s "dht6.dat" ]] && echo -e "${Error} Aria2 DHT（IPv6）文件下载失败 !" && rm -rf "${aria2_conf_path}" && exit 1
+    PROFILE_URL1="https://p3terx.github.io/aria2.conf"
+    PROFILE_URL2="https://aria2c.now.sh"
+    PROFILE_URL3="https://cdn.jsdelivr.net/gh/P3TERX/aria2.conf@master"
+    PROFILE_LIST="
+aria2.conf
+clean.sh
+core
+script.conf
+rclone.env
+upload.sh
+delete.sh
+dht.dat
+dht6.dat
+move.sh
+LICENSE
+"
+    mkdir -p "${aria2_conf_dir}" && cd "${aria2_conf_dir}"
+    for PROFILE in ${PROFILE_LIST}; do
+        [[ ! -f ${PROFILE} ]] && rm -rf ${PROFILE}
+        wget -N -t2 -T3 ${PROFILE_URL1}/${PROFILE} ||
+            wget -N -t2 -T3 ${PROFILE_URL2}/${PROFILE} ||
+            wget -N -t2 -T3 ${PROFILE_URL3}/${PROFILE}
+        [[ ! -s ${PROFILE} ]] && {
+            echo -e "${Error} '${PROFILE}' 下载失败！清理残留文件..."
+            rm -vrf "${aria2_conf_dir}"
+            exit 1
+        }
+    done
+    sed -i "s@^\(dir=\).*@\1${download_path}@" ${aria2_conf}
+    sed -i "s@/root/.aria2/@${aria2_conf_dir}/@" ${aria2_conf_dir}/*.conf
+    sed -i "s@^\(rpc-secret=\).*@\1$(date +%s%N | md5sum | head -c 20)@" ${aria2_conf}
+    sed -i "s@^#\(retry-on-.*=\).*@\1true@" ${aria2_conf}
+    sed -i "s@^\(max-connection-per-server=\).*@\132@" ${aria2_conf}
     touch aria2.session
     chmod +x *.sh
-    sed -i "/^downloadpath=/c\downloadpath='${download_path}'" ${aria2_conf_path}/*.sh
-    sed -i "/^DOWNLOAD_PATH=/c\DOWNLOAD_PATH='${download_path}'" ${aria2_conf_path}/*.sh
-    sed -i 's/^rpc-secret=P3TERX/rpc-secret='$(date +%s%N | md5sum | head -c 20)'/g' ${aria2_conf}
     echo -e "${Info} Aria2 完美配置下载完成！"
 }
 Service_aria2() {
     if [[ ${release} = "centos" ]]; then
         wget -N -t2 -T3 "https://raw.githubusercontent.com/P3TERX/aria2.sh/master/service/aria2_centos" -O /etc/init.d/aria2 ||
-            wget -N -t2 -T3 "https://cdn.jsdelivr.net/gh/P3TERX/aria2.sh/service/aria2_centos" -O /etc/init.d/aria2 ||
-            wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.sh/master/service/aria2_centos" -O /etc/init.d/aria2
+            wget -N -t2 -T3 "https://cdn.jsdelivr.net/gh/P3TERX/aria2.sh@master/service/aria2_centos" -O /etc/init.d/aria2 ||
+            wget -N -t2 -T3 "https://gh-raw.p3terx.com/P3TERX/aria2.sh/master/service/aria2_centos" -O /etc/init.d/aria2
         [[ ! -s /etc/init.d/aria2 ]] && {
             echo -e "${Error} Aria2服务 管理脚本下载失败 !"
             exit 1
@@ -184,8 +181,8 @@ Service_aria2() {
         chkconfig aria2 on
     else
         wget -N -t2 -T3 "https://raw.githubusercontent.com/P3TERX/aria2.sh/master/service/aria2_debian" -O /etc/init.d/aria2 ||
-            wget -N -t2 -T3 "https://cdn.jsdelivr.net/gh/P3TERX/aria2.sh/service/aria2_debian" -O /etc/init.d/aria2 ||
-            wget -N -t2 -T3 "https://gh.p3terx.workers.dev/aria2.sh/master/service/aria2_debian" -O /etc/init.d/aria2
+            wget -N -t2 -T3 "https://cdn.jsdelivr.net/gh/P3TERX/aria2.sh@master/service/aria2_debian" -O /etc/init.d/aria2 ||
+            wget -N -t2 -T3 "https://gh-raw.p3terx.com/P3TERX/aria2.sh/master/service/aria2_debian" -O /etc/init.d/aria2
         [[ ! -s /etc/init.d/aria2 ]] && {
             echo -e "${Error} Aria2服务 管理脚本下载失败 !"
             exit 1
@@ -198,12 +195,14 @@ Service_aria2() {
 Installation_dependency() {
     if [[ ${release} = "centos" ]]; then
         yum update
-        yum install nano ca-certificates findutils jq tar gzip dpkg -y
+        yum install -y wget curl nano ca-certificates findutils jq tar gzip dpkg
     else
         apt-get update
-        apt-get install nano ca-certificates findutils jq tar gzip dpkg -y
+        apt-get install -y wget curl nano ca-certificates findutils jq tar gzip dpkg
     fi
-    wget -qO- git.io/ca-certificates.sh | bash
+    if [[ ! -s /etc/ssl/certs/ca-certificates.crt ]]; then
+        wget -qO- git.io/ca-certificates.sh | bash
+    fi
 }
 Install_aria2() {
     check_root
@@ -220,11 +219,11 @@ Install_aria2() {
     Service_aria2
     Read_config
     aria2_RPC_port=${aria2_port}
-    echo -e "${Info} 开始设置 iptables防火墙..."
+    echo -e "${Info} 开始设置 iptables 防火墙..."
     Set_iptables
-    echo -e "${Info} 开始添加 iptables防火墙规则..."
+    echo -e "${Info} 开始添加 iptables 防火墙规则..."
     Add_iptables
-    echo -e "${Info} 开始保存 iptables防火墙规则..."
+    echo -e "${Info} 开始保存 iptables 防火墙规则..."
     Save_iptables
     echo -e "${Info} 开始创建 下载目录..."
     mkdir -p ${download_path}
@@ -254,14 +253,13 @@ Set_aria2() {
     echo -e "
  ${Green_font_prefix}1.${Font_color_suffix} 修改 Aria2 RPC 密钥
  ${Green_font_prefix}2.${Font_color_suffix} 修改 Aria2 RPC 端口
- ${Green_font_prefix}3.${Font_color_suffix} 修改 Aria2 文件下载位置
- ${Green_font_prefix}4.${Font_color_suffix} 修改 Aria2 密钥 + 端口 + 文件下载位置
+ ${Green_font_prefix}3.${Font_color_suffix} 修改 Aria2 下载目录
+ ${Green_font_prefix}4.${Font_color_suffix} 修改 Aria2 密钥 + 端口 + 下载目录
  ${Green_font_prefix}5.${Font_color_suffix} 手动 打开配置文件修改
  ————————————
  ${Green_font_prefix}0.${Font_color_suffix} 重置/更新 Aria2 完美配置
 "
-    read -e -p "(默认: 取消):" aria2_modify
-    [[ -z "${aria2_modify}" ]] && echo "已取消..." && exit 1
+    read -e -p " 请输入数字 [0-5]:" aria2_modify
     if [[ ${aria2_modify} == "1" ]]; then
         Set_aria2_RPC_passwd
     elif [[ ${aria2_modify} == "2" ]]; then
@@ -275,7 +273,9 @@ Set_aria2() {
     elif [[ ${aria2_modify} == "0" ]]; then
         Reset_aria2_conf
     else
-        echo -e "${Error} 请输入正确的数字(0-5)" && exit 1
+        echo
+        echo -e " ${Error} 请输入正确的数字"
+        exit 1
     fi
 }
 Set_aria2_RPC_passwd() {
@@ -288,34 +288,38 @@ Set_aria2_RPC_passwd() {
     else
         aria2_passwd_1=${aria2_passwd}
     fi
-    echo -e "请输入要设置的 Aria2 RPC 密钥(旧密钥为：${Green_font_prefix}${aria2_passwd_1}${Font_color_suffix})"
-    read -e -p "(默认密钥: 随机生成 密钥请不要包含等号 = 和井号 #):" aria2_RPC_passwd
+    echo -e "
+ ${Tip} Aria2 RPC 密钥不要包含等号(=)和井号(#)，留空为随机生成。
+
+ 当前 RPC 密钥为: ${Green_font_prefix}${aria2_passwd_1}${Font_color_suffix}
+"
+    read -e -p " 请输入新的 RPC 密钥: " aria2_RPC_passwd
     echo
     [[ -z "${aria2_RPC_passwd}" ]] && aria2_RPC_passwd=$(date +%s%N | md5sum | head -c 20)
     if [[ "${aria2_passwd}" != "${aria2_RPC_passwd}" ]]; then
         if [[ -z "${aria2_passwd}" ]]; then
             echo -e "\nrpc-secret=${aria2_RPC_passwd}" >>${aria2_conf}
             if [[ $? -eq 0 ]]; then
-                echo -e "${Info} 密钥修改成功！新密钥为：${Green_font_prefix}${aria2_RPC_passwd}${Font_color_suffix}(因为找不到旧配置参数，所以自动加入配置文件底部)"
+                echo -e "${Info} RPC 密钥修改成功！新密钥为：${Green_font_prefix}${aria2_RPC_passwd}${Font_color_suffix}(配置文件中缺少相关选项参数，已自动加入配置文件底部)"
                 if [[ ${read_123} != "1" ]]; then
                     Restart_aria2
                 fi
             else
-                echo -e "${Error} 密钥修改失败！旧密钥为：${Green_font_prefix}${aria2_passwd}${Font_color_suffix}"
+                echo -e "${Error} RPC 密钥修改失败！旧密钥为：${Green_font_prefix}${aria2_passwd}${Font_color_suffix}"
             fi
         else
             sed -i 's/^rpc-secret='${aria2_passwd}'/rpc-secret='${aria2_RPC_passwd}'/g' ${aria2_conf}
             if [[ $? -eq 0 ]]; then
-                echo -e "${Info} 密钥修改成功！新密钥为：${Green_font_prefix}${aria2_RPC_passwd}${Font_color_suffix}"
+                echo -e "${Info} RPC 密钥修改成功！新密钥为：${Green_font_prefix}${aria2_RPC_passwd}${Font_color_suffix}"
                 if [[ ${read_123} != "1" ]]; then
                     Restart_aria2
                 fi
             else
-                echo -e "${Error} 密钥修改失败！旧密钥为：${Green_font_prefix}${aria2_passwd}${Font_color_suffix}"
+                echo -e "${Error} RPC 密钥修改失败！旧密钥为：${Green_font_prefix}${aria2_passwd}${Font_color_suffix}"
             fi
         fi
     else
-        echo -e "${Error} 新密钥与旧密钥一致，取消..."
+        echo -e "${Error} 与旧配置一致，无需修改..."
     fi
 }
 Set_aria2_RPC_port() {
@@ -328,15 +332,17 @@ Set_aria2_RPC_port() {
     else
         aria2_port_1=${aria2_port}
     fi
-    echo -e "请输入要设置的 Aria2 RPC 端口(旧端口为：${Green_font_prefix}${aria2_port_1}${Font_color_suffix})"
-    read -e -p "(默认端口: 6800):" aria2_RPC_port
+    echo -e "
+ 当前 RPC 端口为: ${Green_font_prefix}${aria2_port_1}${Font_color_suffix}
+"
+    read -e -p " 请输入新的 RPC 端口(默认: 6800): " aria2_RPC_port
     echo
     [[ -z "${aria2_RPC_port}" ]] && aria2_RPC_port="6800"
     if [[ "${aria2_port}" != "${aria2_RPC_port}" ]]; then
         if [[ -z "${aria2_port}" ]]; then
             echo -e "\nrpc-listen-port=${aria2_RPC_port}" >>${aria2_conf}
             if [[ $? -eq 0 ]]; then
-                echo -e "${Info} 端口修改成功！新端口为：${Green_font_prefix}${aria2_RPC_port}${Font_color_suffix}(因为找不到旧配置参数，所以自动加入配置文件底部)"
+                echo -e "${Info} RPC 端口修改成功！新端口为：${Green_font_prefix}${aria2_RPC_port}${Font_color_suffix}(配置文件中缺少相关选项参数，已自动加入配置文件底部)"
                 Del_iptables
                 Add_iptables
                 Save_iptables
@@ -344,12 +350,12 @@ Set_aria2_RPC_port() {
                     Restart_aria2
                 fi
             else
-                echo -e "${Error} 端口修改失败！旧端口为：${Green_font_prefix}${aria2_port}${Font_color_suffix}"
+                echo -e "${Error} RPC 端口修改失败！旧端口为：${Green_font_prefix}${aria2_port}${Font_color_suffix}"
             fi
         else
             sed -i 's/^rpc-listen-port='${aria2_port}'/rpc-listen-port='${aria2_RPC_port}'/g' ${aria2_conf}
             if [[ $? -eq 0 ]]; then
-                echo -e "${Info} 端口修改成功！新端口为：${Green_font_prefix}${aria2_RPC_port}${Font_color_suffix}"
+                echo -e "${Info} RPC 端口修改成功！新端口为：${Green_font_prefix}${aria2_RPC_port}${Font_color_suffix}"
                 Del_iptables
                 Add_iptables
                 Save_iptables
@@ -357,11 +363,11 @@ Set_aria2_RPC_port() {
                     Restart_aria2
                 fi
             else
-                echo -e "${Error} 端口修改失败！旧端口为：${Green_font_prefix}${aria2_port}${Font_color_suffix}"
+                echo -e "${Error} RPC 端口修改失败！旧端口为：${Green_font_prefix}${aria2_port}${Font_color_suffix}"
             fi
         fi
     else
-        echo -e "${Error} 新端口与旧端口一致，取消..."
+        echo -e "${Error} 与旧配置一致，无需修改..."
     fi
 }
 Set_aria2_RPC_dir() {
@@ -374,43 +380,40 @@ Set_aria2_RPC_dir() {
     else
         aria2_dir_1=${aria2_dir}
     fi
-    echo -e "请输入要设置的 Aria2 文件下载位置(旧位置为：${Green_font_prefix}${aria2_dir_1}${Font_color_suffix})"
-    read -e -p "(默认位置: ${download_path}):" aria2_RPC_dir
+    echo -e "
+ 当前下载目录为: ${Green_font_prefix}${aria2_dir_1}${Font_color_suffix}
+"
+    read -e -p " 请输入新的下载目录(默认: ${download_path}): " aria2_RPC_dir
     [[ -z "${aria2_RPC_dir}" ]] && aria2_RPC_dir="${download_path}"
     mkdir -p ${aria2_RPC_dir}
     echo
-    if [[ -d "${aria2_RPC_dir}" ]]; then
-        if [[ "${aria2_dir}" != "${aria2_RPC_dir}" ]]; then
-            if [[ -z "${aria2_dir}" ]]; then
-                echo -e "\ndir=${aria2_RPC_dir}" >>${aria2_conf}
-                if [[ $? -eq 0 ]]; then
-                    echo -e "${Info} 位置修改成功！新位置为：${Green_font_prefix}${aria2_RPC_dir}${Font_color_suffix}(因为找不到旧配置参数，所以自动加入配置文件底部)"
-                    if [[ ${read_123} != "1" ]]; then
-                        Restart_aria2
-                    fi
-                else
-                    echo -e "${Error} 位置修改失败！旧位置为：${Green_font_prefix}${aria2_dir}${Font_color_suffix}"
+    if [[ "${aria2_dir}" != "${aria2_RPC_dir}" ]]; then
+        if [[ -z "${aria2_dir}" ]]; then
+            echo -e "\ndir=${aria2_RPC_dir}" >>${aria2_conf}
+            if [[ $? -eq 0 ]]; then
+                echo -e "${Info} 下载目录修改成功！新位置为：${Green_font_prefix}${aria2_RPC_dir}${Font_color_suffix}(配置文件中缺少相关选项参数，已自动加入配置文件底部)"
+                if [[ ${read_123} != "1" ]]; then
+                    Restart_aria2
                 fi
             else
-                aria2_dir_2=$(echo "${aria2_dir}" | sed 's/\//\\\//g')
-                aria2_RPC_dir_2=$(echo "${aria2_RPC_dir}" | sed 's/\//\\\//g')
-                sed -i 's/^dir='${aria2_dir_2}'/dir='${aria2_RPC_dir_2}'/g' ${aria2_conf}
-                sed -i "/^downloadpath=/c\downloadpath='${aria2_RPC_dir_2}'" ${aria2_conf_path}/*.sh
-                sed -i "/^DOWNLOAD_PATH=/c\DOWNLOAD_PATH='${aria2_RPC_dir_2}'" ${aria2_conf_path}/*.sh
-                if [[ $? -eq 0 ]]; then
-                    echo -e "${Info} 位置修改成功！新位置为：${Green_font_prefix}${aria2_RPC_dir}${Font_color_suffix}"
-                    if [[ ${read_123} != "1" ]]; then
-                        Restart_aria2
-                    fi
-                else
-                    echo -e "${Error} 位置修改失败！旧位置为：${Green_font_prefix}${aria2_dir}${Font_color_suffix}"
-                fi
+                echo -e "${Error} 下载目录修改失败！旧位置为：${Green_font_prefix}${aria2_dir}${Font_color_suffix}"
             fi
         else
-            echo -e "${Error} 新位置与旧位置一致，取消..."
+            aria2_dir_2=$(echo "${aria2_dir}" | sed 's/\//\\\//g')
+            aria2_RPC_dir_2=$(echo "${aria2_RPC_dir}" | sed 's/\//\\\//g')
+            sed -i "s@^\(dir=\).*@\1${aria2_RPC_dir_2}@" ${aria2_conf}
+            sed -i "s@^\(DOWNLOAD_PATH='\).*@\1${aria2_RPC_dir_2}'@" ${aria2_conf_dir}/*.sh
+            if [[ $? -eq 0 ]]; then
+                echo -e "${Info} 下载目录修改成功！新位置为：${Green_font_prefix}${aria2_RPC_dir}${Font_color_suffix}"
+                if [[ ${read_123} != "1" ]]; then
+                    Restart_aria2
+                fi
+            else
+                echo -e "${Error} 下载目录修改失败！旧位置为：${Green_font_prefix}${aria2_dir}${Font_color_suffix}"
+            fi
         fi
     else
-        echo -e "${Error} 新位置文件夹不存在，请检查！新位置为：${Green_font_prefix}${aria2_RPC_dir}${Font_color_suffix}"
+        echo -e "${Error} 与旧配置一致，无需修改..."
     fi
 }
 Set_aria2_RPC_passwd_port_dir() {
@@ -449,8 +452,7 @@ Set_aria2_vim_conf() {
         mkdir -p ${aria2_dir}
         aria2_dir_2=$(echo "${aria2_dir}" | sed 's/\//\\\//g')
         aria2_dir_old_2=$(echo "${aria2_dir_old}" | sed 's/\//\\\//g')
-        sed -i "/^downloadpath=/c\downloadpath='${aria2_RPC_dir_2}'" ${aria2_conf_path}/*.sh
-        sed -i "/^DOWNLOAD_PATH=/c\DOWNLOAD_PATH='${aria2_RPC_dir_2}'" ${aria2_conf_path}/*.sh
+        sed -i "s@^\(DOWNLOAD_PATH='\).*@\1${aria2_dir_2}'@" ${aria2_conf_dir}/*.sh
     fi
     Restart_aria2
 }
@@ -491,27 +493,34 @@ View_Aria2() {
     check_installed_status
     Read_config
     IPV4=$(
-        wget -qO- -t1 -T2 -4 ip.sb ||
-            wget -qO- -t1 -T2 -4 ifconfig.io ||
+        wget -qO- -t1 -T2 -4 api.ip.sb/ip ||
+            wget -qO- -t1 -T2 -4 ifconfig.io/ip ||
             wget -qO- -t1 -T2 -4 www.trackip.net/ip
     )
-    [[ -z "${IPV4}" ]] && IPV4="IPv4 地址检测失败"
     IPV6=$(
-        wget -qO- -t1 -T2 -6 ip.sb ||
-            wget -qO- -t1 -T2 -6 ifconfig.io ||
+        wget -qO- -t1 -T2 -6 api.ip.sb/ip ||
+            wget -qO- -t1 -T2 -6 ifconfig.io/ip ||
             wget -qO- -t1 -T2 -6 www.trackip.net/ip
     )
+    [[ -z "${IPV4}" ]] && IPV4="IPv4 地址检测失败"
     [[ -z "${IPV6}" ]] && IPV6="IPv6 地址检测失败"
     [[ -z "${aria2_dir}" ]] && aria2_dir="找不到配置参数"
     [[ -z "${aria2_port}" ]] && aria2_port="找不到配置参数"
     [[ -z "${aria2_passwd}" ]] && aria2_passwd="找不到配置参数(或无密钥)"
+    if [[ -z "${IPV4}" || -z "${aria2_port}" ]]; then
+        AriaNg_URL="null"
+    else
+        AriaNg_API="/#!/settings/rpc/set/ws/${IPV4}/${aria2_port}/jsonrpc/$(echo -n ${aria2_passwd} | base64)"
+        AriaNg_URL="http://ariang.js.org${AriaNg_API}"
+    fi
     clear
     echo -e "\nAria2 简单配置信息：\n
  IPv4 地址\t: ${Green_font_prefix}${IPV4}${Font_color_suffix}
  IPv6 地址\t: ${Green_font_prefix}${IPV6}${Font_color_suffix}
  RPC 端口\t: ${Green_font_prefix}${aria2_port}${Font_color_suffix}
  RPC 密钥\t: ${Green_font_prefix}${aria2_passwd}${Font_color_suffix}
- 下载目录\t: ${Green_font_prefix}${aria2_dir}${Font_color_suffix}\n"
+ 下载目录\t: ${Green_font_prefix}${aria2_dir}${Font_color_suffix}
+ AriaNg 链接\t: ${Green_font_prefix}${AriaNg_URL}${Font_color_suffix}\n"
 }
 View_Log() {
     [[ ! -e ${aria2_log} ]] && echo -e "${Error} Aria2 日志文件不存在 !" && exit 1
@@ -520,7 +529,7 @@ View_Log() {
 }
 Clean_Log() {
     [[ ! -e ${aria2_log} ]] && echo -e "${Error} Aria2 日志文件不存在 !" && exit 1
-    >${aria2_log}
+    echo >${aria2_log}
     echo -e "${Info} Aria2 日志已清空 !"
 }
 crontab_update_status() {
@@ -531,23 +540,23 @@ Update_bt_tracker_cron() {
     check_crontab_installed_status
     if [[ -z $(crontab_update_status) ]]; then
         echo
-        echo -e "确定要开启 ${Green_font_prefix}自动更新 BT-Tracker${Font_color_suffix} 功能吗？(可能会增强 BT 下载速率)[Y/n] \c"
+        echo -e " 是否开启 ${Green_font_prefix}自动更新 BT-Tracker${Font_color_suffix} 功能？(可能会增强 BT 下载速率)[Y/n] \c"
         read -e crontab_update_status_ny
         [[ -z "${crontab_update_status_ny}" ]] && crontab_update_status_ny="y"
         if [[ ${crontab_update_status_ny} == [Yy] ]]; then
             crontab_update_start
         else
-            echo && echo "	已取消..." && echo
+            echo && echo " 已取消..."
         fi
     else
         echo
-        echo -e "确定要关闭 ${Red_font_prefix}自动更新 BT-Tracker${Font_color_suffix} 功能吗？[y/N] \c"
+        echo -e " 是否关闭 ${Red_font_prefix}自动更新 BT-Tracker${Font_color_suffix} 功能？[y/N] \c"
         read -e crontab_update_status_ny
         [[ -z "${crontab_update_status_ny}" ]] && crontab_update_status_ny="n"
         if [[ ${crontab_update_status_ny} == [Yy] ]]; then
             crontab_update_stop
         else
-            echo && echo "	已取消..." && echo
+            echo && echo " 已取消..."
         fi
     fi
 }
@@ -555,7 +564,7 @@ crontab_update_start() {
     crontab -l >"/tmp/crontab.bak"
     sed -i "/aria2.sh update-bt-tracker/d" "/tmp/crontab.bak"
     sed -i "/tracker.sh/d" "/tmp/crontab.bak"
-    echo -e "\n0 7 * * * /bin/bash <(wget -qO- git.io/tracker.sh) ${aria2_conf} RPC 2>&1 | tee ${aria2_conf_path}/tracker.log" >>"/tmp/crontab.bak"
+    echo -e "\n0 7 * * * /bin/bash <(wget -qO- git.io/tracker.sh) ${aria2_conf} RPC 2>&1 | tee ${aria2_conf_dir}/tracker.log" >>"/tmp/crontab.bak"
     crontab "/tmp/crontab.bak"
     rm -f "/tmp/crontab.bak"
     if [[ -z $(crontab_update_status) ]]; then
@@ -609,7 +618,7 @@ Uninstall_aria2() {
         Del_iptables
         Save_iptables
         rm -rf "${aria2c}"
-        rm -rf "${aria2_conf_path}"
+        rm -rf "${aria2_conf_dir}"
         if [[ ${release} = "centos" ]]; then
             chkconfig --del aria2
         else
@@ -654,6 +663,7 @@ Update_Shell() {
     if [[ -e "/etc/init.d/aria2" ]]; then
         rm -rf /etc/init.d/aria2
         Service_aria2
+        Restart_aria2
     fi
     if [[ -n $(crontab_update_status) ]]; then
         crontab_update_stop
@@ -742,6 +752,7 @@ case "$num" in
     Update_bt_tracker_cron
     ;;
 *)
-    echo "请输入正确数字 [0-12]"
+    echo
+    echo -e " ${Error} 请输入正确的数字"
     ;;
 esac
