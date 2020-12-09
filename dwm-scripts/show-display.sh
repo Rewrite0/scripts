@@ -5,4 +5,5 @@
 #########################################################################
 #xrandr --output VGA1 --left-of LVDS1 --auto
 xrandr --output HDMI-1 --left-of LVDS-1 --auto
+xrandr --output HDMI-1-1 --left-of LVDS-1-1 --auto
 

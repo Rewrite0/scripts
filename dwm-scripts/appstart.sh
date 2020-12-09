@@ -5,5 +5,6 @@ xdman &
 fcitx5 &
 nm-applet &
 blueman-applet &
+optimus-manager-qt &
 wmname LG3D
 ~/scripts/clash.sh
