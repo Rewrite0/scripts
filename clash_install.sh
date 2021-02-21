@@ -20,7 +20,7 @@ mv `ls | grep clash-linux` clash
 chmod +x clash
 
 if [ $user == root ];then
-        mv clash /usr/local/bin
+	mv clash /usr/local/bin
 else
-        sudo mv clash /usr/local/bin
+  sudo mv clash /usr/local/bin
 fi
