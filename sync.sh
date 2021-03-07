@@ -8,10 +8,10 @@ print_date(){
 	date +'%Y/%m/%d/%R'
 }
 
-#push
-./push_gd.sh
 #pull
-./pull_gd.sh
+./sync_pull.sh
+#push
+./sync_push.sh
 
 echo `print_date` -sync完成 >> /tmp/log/sync.log
 notify-send sync "sync任务完成"
