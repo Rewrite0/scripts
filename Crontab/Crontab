@@ -2,6 +2,6 @@ HOME=/
 PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin
 SHELL=/bin/bash
 # 每天21点0同步文件
-0 21 * * * /home/rewrite/scripts/sync.sh
+0 19 * * * /home/rewrite/scripts/sync.sh
 # 每2小时更新clash配置
 #0 */2 * * * /home/rewrite/scripts/switchcfg.sh
