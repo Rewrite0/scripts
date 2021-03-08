@@ -9,9 +9,9 @@ print_date(){
 }
 
 #pull
-./sync_pull.sh
+/home/rewrite/scripts/sync_pull.sh
 #push
-./sync_push.sh
+/home/rewrite/scripts/sync_push.sh
 
 echo `print_date` -sync完成 >> /tmp/log/sync.log
 notify-send sync "sync任务完成"
