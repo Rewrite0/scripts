@@ -9,10 +9,12 @@ print_date(){
 	date +'%Y/%m/%d/%R'
 }
 
-#pull
-/home/rewrite/scripts/sync_pull.sh
-#push
-/home/rewrite/scripts/sync_push.sh
+notify-send sync "sync任务开始"
+
+# Music
+rclone sync -Pv od:/Backups/Music /home/rewrite/Music > /tmp/log/sync.log 2>&1
+# live_wallpaper
+rclone sync -Pv /home/rewrite/Videos/live_wallpaper od:/Backups/live_wallpaper >> /tmp/log/sync.log 2>&1
 
 echo `print_date` -sync完成 >> /tmp/log/sync.log
 notify-send sync "sync任务完成"
