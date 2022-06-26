@@ -1,5 +1,0 @@
-HOME=/
-PATH=/sbin:/bin:/usr/bin:/usr/sbin:/usr/local/bin
-SHELL=/bin/bash
-# 每天13,19,22点0同步文件
-0 13,19,22 * * * /home/rewrite/scripts/sync.sh
